@@ -1,0 +1,30 @@
+{
+  "name": "snowflake-sink-cdc",
+  "config": {
+    "connector.class": "com.snowflake.kafka.connector.SnowflakeSinkConnector",
+    "tasks.max": "2",
+
+    "topics": "iot-cdc.iot_streaming_db.public.iot_events",
+
+    "snowflake.url.name": "${SNOWFLAKE_URL}",
+    "snowflake.user.name": "KAFKA_CONNECTOR",
+    "snowflake.private.key": "${SNOWFLAKE_PRIVATE_KEY}",
+    "snowflake.database.name": "IOT_RAW",
+    "snowflake.schema.name": "RAW",
+    "snowflake.topic2table.map": "iot-cdc.iot_streaming_db.public.iot_events:IOT_EVENTS_RAW",
+
+    "buffer.count.records": "10000",
+    "buffer.flush.time": "60",
+    "buffer.size.bytes": "5000000",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+
+    "errors.tolerance": "all",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true",
+    "errors.deadletterqueue.topic.name": "dead-letter",
+    "errors.deadletterqueue.topic.replication.factor": "2"
+  }
+}

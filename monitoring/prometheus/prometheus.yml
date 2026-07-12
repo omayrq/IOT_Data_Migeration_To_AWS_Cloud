@@ -1,0 +1,50 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+
+  # Attach metadata labels to any time series when communicating with external systems
+  external_labels:
+    monitor: 'iot-streaming-platform'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+# Load rules once and periodically evaluate them according to the global evaluation_interval.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'kafka-brokers'
+    scrape_interval: 10s
+    static_configs:
+      - targets:
+          - 'kafka-broker-1:7071' # Kafka JMX Exporter Port
+          - 'kafka-broker-2:7071'
+        labels:
+          role: 'message-broker'
+
+  - job_name: 'kafka-connect'
+    scrape_interval: 10s
+    static_configs:
+      - targets:
+          - 'kafka-connect-host:7072' # Kafka Connect JMX Exporter Port
+        labels:
+          role: 'integration-connect'
+
+  - job_name: 'node-exporter'
+    scrape_interval: 10s
+    static_configs:
+      - targets:
+          - 'kafka-broker-1:9100'
+          - 'kafka-broker-2:9100'
+          - 'kafka-connect-host:9100'

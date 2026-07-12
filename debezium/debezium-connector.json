@@ -1,0 +1,53 @@
+{
+  "name": "debezium-postgres-cdc",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+
+    "database.hostname": "${POSTGRES_HOST}",
+    "database.port": "5432",
+    "database.user": "debezium",
+    "database.password": "${POSTGRES_PASSWORD}",
+    "database.dbname": "iot_streaming_db",
+    "database.server.name": "iot_cdc",
+
+    "plugin.name": "pgoutput",
+    "publication.name": "iot_publication",
+    "slot.name": "debezium_slot",
+    "slot.drop.on.stop": "false",
+
+    "table.include.list": "iot.iot_events,iot.device_registry,iot.device_alerts",
+
+    "topic.prefix": "iot-cdc",
+    "topic.creation.default.replication.factor": "2",
+    "topic.creation.default.partitions": "6",
+
+    "snapshot.mode": "initial",
+    "snapshot.locking.mode": "minimal",
+
+    "decimal.handling.mode": "double",
+    "time.precision.mode": "adaptive_time_microseconds",
+    "tombstones.on.delete": "true",
+
+    "heartbeat.interval.ms": "10000",
+    "heartbeat.topics.prefix": "__debezium-heartbeat",
+
+    "transforms": "unwrap,addTopic",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false",
+    "transforms.unwrap.delete.handling.mode": "rewrite",
+    "transforms.unwrap.add.fields": "op,table,ts_ms",
+    "transforms.addTopic.type": "org.apache.kafka.connect.transforms.ReplaceField$Value",
+    "transforms.addTopic.renames": "ts_ms:cdc_timestamp_ms",
+
+    "errors.tolerance": "all",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true",
+    "errors.deadletterqueue.topic.name": "dead-letter",
+    "errors.deadletterqueue.topic.replication.factor": "2",
+    "errors.deadletterqueue.context.headers.enable": "true",
+
+    "producer.override.acks": "all",
+    "producer.override.enable.idempotence": "true"
+  }
+}

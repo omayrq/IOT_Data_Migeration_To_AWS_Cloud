@@ -1,8 +1,0 @@
-# Convenience combined dev requirements (also see per-component requirements.txt)
-psycopg2-binary>=2.9
-dbt-snowflake>=1.8
-streamlit>=1.36
-snowflake-connector-python>=3.10
-pandas>=2.2
-plotly>=5.22
-boto3>=1.34

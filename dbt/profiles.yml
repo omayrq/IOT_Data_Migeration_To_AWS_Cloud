@@ -1,0 +1,28 @@
+iot_streaming:
+  target: prod
+  outputs:
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: DBT_USER
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH', '~/.snowflake/dbt_rsa_key.p8') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: IOT_DBT_ROLE
+      database: IOT_SILVER
+      warehouse: IOT_TRANSFORM_WH
+      schema: CLEAN
+      threads: 4
+      client_session_keep_alive: false
+      query_tag: dbt_iot_streaming
+
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_DEV_USER', 'DBT_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_DEV_PASSWORD') }}"
+      role: IOT_DBT_ROLE
+      database: IOT_SILVER
+      warehouse: IOT_TRANSFORM_WH
+      schema: CLEAN_DEV
+      threads: 2
+      query_tag: dbt_iot_dev

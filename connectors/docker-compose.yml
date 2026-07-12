@@ -1,0 +1,126 @@
+version: "3.8"
+
+# =============================================================================
+# Kafka Connect Platform — IoT Streaming
+# Runs: Kafka Connect + Confluent Schema Registry
+# Connectors installed: Debezium PostgreSQL, JDBC Sink, S3 Sink, Snowflake
+# Deploy to: Kafka Connect EC2 instance (iot-kafka-connect)
+# =============================================================================
+
+networks:
+  connect-net:
+    driver: bridge
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Schema Registry — Avro/JSON schema management
+  # ---------------------------------------------------------------------------
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.1
+    container_name: schema-registry
+    restart: unless-stopped
+    networks:
+      - connect-net
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+      SCHEMA_REGISTRY_DEBUG: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Kafka Connect — All connectors in one worker
+  # ---------------------------------------------------------------------------
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.6.1
+    container_name: kafka-connect
+    restart: unless-stopped
+    depends_on:
+      schema-registry:
+        condition: service_healthy
+    networks:
+      - connect-net
+    ports:
+      - "8083:8083"   # REST API
+      - "9875:9875"   # JMX for Prometheus
+    volumes:
+      - ./plugins:/usr/share/confluent-hub-components  # Downloaded connectors
+      - ./scripts:/scripts
+    environment:
+      # Bootstrap
+      CONNECT_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_REST_PORT: 8083
+
+      # Internal topic storage (use topics we pre-created)
+      CONNECT_GROUP_ID: "iot-connect-cluster"
+      CONNECT_CONFIG_STORAGE_TOPIC: "__connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "__connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "__connect-status"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "2"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "2"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "2"
+      CONNECT_OFFSET_FLUSH_INTERVAL_MS: "10000"
+
+      # Serialization — JSON (change to AVRO + Schema Registry in production)
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+
+      # Schema Registry
+      CONNECT_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+
+      # Performance
+      CONNECT_TASK_SHUTDOWN_GRACEFUL_TIMEOUT_MS: "30000"
+      CONNECT_OFFSET_STORAGE_PARTITIONS: "25"
+      CONNECT_STATUS_STORAGE_PARTITIONS: "5"
+
+      # Plugin path (connectors installed via confluent-hub or volume mount)
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components,/usr/local/share/kafka/plugins"
+
+      # JMX for Prometheus scraping
+      KAFKA_JMX_PORT: "9875"
+      KAFKA_JMX_HOSTNAME: "0.0.0.0"
+
+      # Security: pull Postgres credentials from Secrets Manager at runtime
+      # (Use AWS Secrets Manager provider or inject via SSM Parameter Store)
+      POSTGRES_HOST: "${POSTGRES_HOST}"
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: "iot_streaming_db"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+
+      # S3 / Snowflake
+      S3_BUCKET: "${S3_BUCKET}"
+      AWS_REGION: "${AWS_REGION:-us-east-1}"
+      SNOWFLAKE_URL: "${SNOWFLAKE_URL}"
+      SNOWFLAKE_USER: "${SNOWFLAKE_USER}"
+      SNOWFLAKE_PRIVATE_KEY: "${SNOWFLAKE_PRIVATE_KEY}"
+
+    command: >
+      bash -c "
+        echo 'Installing connectors...' &&
+        confluent-hub install --no-prompt debezium/debezium-connector-postgresql:2.4.2 &&
+        confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.7.4 &&
+        confluent-hub install --no-prompt confluentinc/kafka-connect-s3:10.5.4 &&
+        confluent-hub install --no-prompt snowflakeinc/snowflake-kafka-connector:2.1.2 &&
+        echo 'Starting Kafka Connect...' &&
+        /etc/confluent/docker/run
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/connectors"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s

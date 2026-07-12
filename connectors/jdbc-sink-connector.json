@@ -1,0 +1,39 @@
+{
+  "name": "jdbc-sink-iot-events",
+  "config": {
+    "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+    "tasks.max": "3",
+
+    "topics": "iot-events",
+
+    "connection.url": "jdbc:postgresql://${POSTGRES_HOST}:5432/iot_streaming_db",
+    "connection.user": "${POSTGRES_USER}",
+    "connection.password": "${POSTGRES_PASSWORD}",
+
+    "auto.create": "false",
+    "auto.evolve": "false",
+    "insert.mode": "upsert",
+    "pk.mode": "record_value",
+    "pk.fields": "device_id,timestamp",
+
+    "table.name.format": "iot.iot_events",
+
+    "fields.whitelist": "device_id,region,latitude,longitude,temperature,humidity,battery,speed,signal_strength,is_online,event_type",
+
+    "transforms": "renameTimestamp,addIngestedAt",
+    "transforms.renameTimestamp.type": "org.apache.kafka.connect.transforms.ReplaceField$Value",
+    "transforms.renameTimestamp.renames": "timestamp:event_timestamp",
+    "transforms.addIngestedAt.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+    "transforms.addIngestedAt.timestamp.field": "ingested_at",
+
+    "errors.tolerance": "all",
+    "errors.log.enable": "true",
+    "errors.log.include.messages": "true",
+    "errors.deadletterqueue.topic.name": "dead-letter",
+    "errors.deadletterqueue.topic.replication.factor": "2",
+    "errors.deadletterqueue.context.headers.enable": "true",
+
+    "batch.size": "3000",
+    "consumer.override.max.poll.records": "3000"
+  }
+}

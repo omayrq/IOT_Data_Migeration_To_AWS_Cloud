@@ -1,0 +1,52 @@
+name: 'iot_streaming'
+version: '1.0.0'
+config-version: 2
+
+profile: 'iot_streaming'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  iot_streaming:
+    bronze:
+      +schema: RAW
+      +database: IOT_RAW
+      +materialized: view
+      +tags: ["bronze"]
+    silver:
+      +schema: CLEAN
+      +database: IOT_SILVER
+      +materialized: incremental
+      +tags: ["silver"]
+      +on_schema_change: "sync_all_columns"
+    gold:
+      +schema: KPI
+      +database: IOT_GOLD
+      +materialized: table
+      +tags: ["gold"]
+      +post-hook:
+        - "GRANT SELECT ON {{ this }} TO ROLE IOT_ANALYST_ROLE"
+
+vars:
+  iot_streaming:
+    # Bronze source
+    raw_database: "IOT_RAW"
+    raw_schema: "RAW"
+    raw_table: "IOT_EVENTS_RAW"
+
+    # Data quality thresholds
+    min_temperature: -50
+    max_temperature: 80
+    min_battery_warn: 20       # Alert threshold
+    min_battery_critical: 10   # Critical threshold
+    max_signal_strength: -30   # Best signal
+    min_signal_strength: -100  # Worst acceptable

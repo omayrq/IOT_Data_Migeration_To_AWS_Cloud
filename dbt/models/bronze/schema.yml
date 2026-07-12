@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: stg_iot_raw
+    description: >
+      Bronze staging view. Parses raw VARIANT from Kafka Snowflake connector
+      into typed columns. No business rules applied here.
+    columns:
+      - name: device_id
+        description: Unique IoT device identifier
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_value_lengths_to_be_between:
+              min_value: 3
+              max_value: 50
+      - name: latitude
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: -90
+              max_value: 90
+      - name: longitude
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: -180
+              max_value: 180
+      - name: temperature
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: -50
+              max_value: 80
+      - name: humidity
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+      - name: battery
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+      - name: cdc_operation
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['r', 'c', 'u', 'd']
+      - name: event_timestamp
+        tests:
+          - not_null
