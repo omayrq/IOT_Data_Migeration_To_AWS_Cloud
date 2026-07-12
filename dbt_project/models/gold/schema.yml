@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: gold_daily_device_agg
+    description: "Daily aggregated metrics per device (Gold layer) for dashboards."
+    columns:
+      - name: device_id
+        tests: [not_null]
+      - name: event_date
+        tests: [not_null]
+      - name: avg_aqi
+        tests: [not_null]
+
+  - name: gold_top_devices
+    description: "Devices ranked by average AQI over the trailing 24h (Gold layer)."
+    columns:
+      - name: device_id
+        tests: [not_null, unique]
+      - name: aqi_rank
+        tests: [not_null]

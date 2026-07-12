@@ -1,0 +1,28 @@
+{
+  "name": "snowflake-iot-bronze-sink",
+  "config": {
+    "connector.class": "com.snowflake.kafka.connector.SnowflakeSinkConnector",
+    "tasks.max": "1",
+    "topics": "cdc.public.iot_events",
+
+    "snowflake.topic2table.map": "cdc.public.iot_events:IOT_EVENTS",
+
+    "snowflake.url.name": "<your_account>.snowflakecomputing.com:443",
+    "snowflake.user.name": "HACKATHON_SVC_USER",
+    "snowflake.private.key": "<PEM_PRIVATE_KEY_NO_HEADERS>",
+    "snowflake.database.name": "HACKATHON_IOT",
+    "snowflake.schema.name": "RAW",
+
+    "buffer.count.records": "1000",
+    "buffer.flush.time": "10",
+    "buffer.size.bytes": "5000000",
+
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "com.snowflake.kafka.connector.records.SnowflakeJsonConverter",
+
+    "errors.tolerance": "all",
+    "errors.log.enable": "true",
+    "errors.deadletterqueue.topic.name": "cdc.public.iot_events.DLQ",
+    "errors.deadletterqueue.topic.replication.factor": "1"
+  }
+}

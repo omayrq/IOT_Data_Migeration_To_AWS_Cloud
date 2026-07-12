@@ -1,0 +1,19 @@
+digraph Architecture {
+  rankdir=LR;
+  fontname="Helvetica";
+  node [shape=box, style="filled,rounded", fontname="Helvetica", fontsize=12, margin="0.25,0.15"];
+  edge [fontname="Helvetica", fontsize=10, color="#555555", penwidth=1.2];
+  graph [splines=ortho, nodesep=0.6, ranksep=0.9, bgcolor="white"];
+
+  sensors  [label="IoT Sensors\n(simulated devices)", fillcolor="#DBEAFE"];
+  postgres [label="PostgreSQL\n(WAL logical replication)", fillcolor="#93C5FD"];
+  debezium [label="Debezium CDC\n(Kafka Connect source)", fillcolor="#A7F3D0"];
+  kafka    [label="Kafka\ntopic: cdc.public.iot_events", fillcolor="#6EE7B7"];
+  sfconn   [label="Snowflake\nKafka Connector", fillcolor="#A7F3D0"];
+  bronze   [label="Bronze - RAW\n(raw CDC events)", fillcolor="#FDE68A"];
+  silver   [label="Silver - CLEAN\n(dbt: validate, dedupe)", fillcolor="#FCD34D"];
+  gold     [label="Gold - ANALYTICS\n(dbt: daily agg, top-N)", fillcolor="#F59E0B", fontcolor="white"];
+  streamlit[label="Streamlit Dashboard\nmap - trend - top-N\nauto-refresh 30s", fillcolor="#818CF8", fontcolor="white"];
+
+  sensors -> postgres -> debezium -> kafka -> sfconn -> bronze -> silver -> gold -> streamlit;
+}

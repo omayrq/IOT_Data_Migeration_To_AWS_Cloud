@@ -1,0 +1,24 @@
+name: 'hackathon_iot'
+version: '1.0.0'
+config-version: 2
+
+profile: 'hackathon_iot'
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  hackathon_iot:
+    bronze:
+      +schema: RAW
+      +materialized: view
+    silver:
+      +schema: CLEAN
+      +materialized: incremental
+      +on_schema_change: append_new_columns
+    gold:
+      +schema: ANALYTICS
+      +materialized: table
